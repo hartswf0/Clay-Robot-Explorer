@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clay Robot Explorer - Onboarding</title>
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
+    <!-- GSAP ScrollTrigger (optional, for advanced animations) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/ScrollTrigger.min.js"></script>
+    <style>
+        :root {
+            --clay-primary: #8B4513;
+            --clay-secondary: #A0522D;
+            --clay-tertiary: #CD853F;
+            --clay-accent: #DEB887;
+            --clay-shadow: rgba(0, 0, 0, 0.4);
+            --clay-highlight: rgba(255, 255, 255, 0.15);
+            --step-inactive: #6B4423;
+            --step-active: #DEB887;
+            --button-bg: #CD853F;
+            --button-text: white;
+            --button-hover-bg: #DEB887;
+            --button-hover-text: #2E3440;
+            --highlight-color: #FFD700;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at center, var(--clay-secondary), var(--clay-primary));
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--clay-accent);
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        /* Onboarding Container */
+        .onboarding-container {
+            background: var(--clay-secondary);
+            border-radius: 60px;
+            padding: 40px;
+            max-width: 1200px;
+            width: 95%;
+            position: relative;
+            box-shadow: 
+                20px 20px 60px var(--clay-shadow),
+                -20px -20px 60px var(--clay-highlight),
+                inset -8px -8px 16px rgba(0,0,0,0.2),
+                inset 8px 8px 16px var(--clay-highlight);
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 40px;
+            min-height: 600px;
+        }
+
+        /* Steps Sidebar */
+        .steps-container {
+            border-right: 2px solid var(--clay-tertiary);
+            padding-right: 30px;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            cursor: pointer;
+            padding: 15px;
+            border-radius: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .step-item.active {
+            background: var(--clay-tertiary);
+            box-shadow: 
+                8px 8px 16px var(--clay-shadow),
+                -8px -8px 16px var(--clay-highlight);
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            background: var(--step-inactive);
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .step-item.active .step-number {
+            background: var(--step-active);
+            color: var(--clay-primary);
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-size: 1.2em;
+            margin-bottom: 5px;
+            color: white;
+        }
+
+        .step-desc {
+            font-size: 0.9em;
+            opacity: 0.8;
+            color: white;
+        }
+
+        /* Content Area */
+        .content-container {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .content-slide {
+            display: none;
+            opacity: 0;
+            text-align: center;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .content-slide.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-container {
+            width: 120px;
+            height: 120px;
+            background: var(--clay-tertiary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+            box-shadow: 
+                12px 12px 24px var(--clay-shadow),
+                -12px -12px 24px var(--clay-highlight);
+        }
+
+        .content-icon {
+            width: 60px;
+            height: 60px;
+            fill: var(--clay-accent);
+        }
+
+        .content-title {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .content-description {
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: white;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        /* Navigation Buttons */
+        .nav-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: auto;
+        }
+
+        .nav-button {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--button-bg);
+            color: var(--button-text);
+            box-shadow: 
+                8px 8px 16px var(--clay-shadow),
+                -8px -8px 16px var(--clay-highlight);
+        }
+
+        .nav-button:hover {
+            background: var(--button-hover-bg);
+            color: var(--button-hover-text);
+            transform: translateY(-3px);
+        }
+
+        .nav-button:active {
+            transform: translateY(0);
+        }
+
+        .nav-button.primary {
+            background: var(--clay-accent);
+            color: var(--clay-primary);
+        }
+
+        /* Highlight Overlay */
+        .highlight-overlay {
+            position: absolute;
+            border: 3px solid var(--highlight-color);
+            border-radius: 10px;
+            pointer-events: none;
+            z-index: 1500;
+            box-shadow: 0 0 20px var(--highlight-color);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .onboarding-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .steps-container {
+                border-right: none;
+                border-bottom: 2px solid var(--clay-tertiary);
+                padding-right: 0;
+                padding-bottom: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .onboarding-container {
+                padding: 20px;
+                border-radius: 30px;
+            }
+
+            .content-title {
+                font-size: 2em;
+            }
+
+            .content-description {
+                font-size: 1.1em;
+            }
+
+            .step-item {
+                margin-bottom: 20px;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+
+            .nav-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Onboarding Container -->
+    <div class="onboarding-container">
+        <!-- Steps Sidebar -->
+        <div class="steps-container">
+            <div class="step-item active" data-step="1">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <div class="step-title">Welcome</div>
+                    <div class="step-desc">Begin your clay journey</div>
+                </div>
+            </div>
+            <div class="step-item" data-step="2">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <div class="step-title">Add Element</div>
+                    <div class="step-desc">Learn to add new elements</div>
+                </div>
+            </div>
+            <div class="step-item" data-step="3">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <div class="step-title">Undo/Redo</div>
+                    <div class="step-desc">Manage your actions</div>
+                </div>
+            </div>
+            <div class="step-item" data-step="4">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <div class="step-title">Modes</div>
+                    <div class="step-desc">Interact with different modes</div>
+                </div>
+            </div>
+            <div class="step-item" data-step="5">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <div class="step-title">Connect</div>
+                    <div class="step-desc">Share your experience</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-container">
+            <!-- Step 1 Content -->
+            <div class="content-slide active" data-content="1">
+                <div class="icon-container">
+                    <svg class="content-icon" viewBox="0 0 24 24">
+                        <path d="M12 2L1 12h3v9h6v-6h4v6h6v-9h3L12 2z"/>
+                    </svg>
+                </div>
+                <h1 class="content-title">Welcome to Clay Robot Explorer</h1>
+                <p class="content-description">
+                    Embark on a journey where ancient craftsmanship meets future technology. 
+                    Here, you'll create and nurture your own clay companion, guided by wisdom 
+                    passed down through generations.
+                </p>
+            </div>
+
+            <!-- Step 2 Content: Add Element -->
+            <div class="content-slide" data-content="2">
+                <div class="icon-container">
+                    <svg class="content-icon" viewBox="0 0 24 24">
+                        <path d="M19 13H5v-2h14v2z"/>
+                    </svg>
+                </div>
+                <h1 class="content-title">Add New Elements</h1>
+                <p class="content-description">
+                    Click the "Add Element" button to introduce new components to your workspace. 
+                    Let's add your first element now!
+                </p>
+            </div>
+
+            <!-- Step 3 Content: Undo/Redo -->
+            <div class="content-slide" data-content="3">
+                <div class="icon-container">
+                    <svg class="content-icon" viewBox="0 0 24 24">
+                        <path d="M12 5v2l4-4-4-4v2H4v4h8zm-8 14v-4h8v4H4z"/>
+                    </svg>
+                </div>
+                <h1 class="content-title">Undo and Redo Actions</h1>
+                <p class="content-description">
+                    Mistakes happen! Use the "Undo" and "Redo" buttons to manage your actions 
+                    seamlessly. Try undoing the last action you performed.
+                </p>
+            </div>
+
+            <!-- Step 4 Content: Modes -->
+            <div class="content-slide" data-content="4">
+                <div class="icon-container">
+                    <svg class="content-icon" viewBox="0 0 24 24">
+                        <path d="M21 7L14.5 3 8 7l3 3-1 4 4-2 4 2-1-4 3-3zM6 9h12v2H6V9z"/>
+                    </svg>
+                </div>
+                <h1 class="content-title">Explore Different Modes</h1>
+                <p class="content-description">
+                    Interact with your elements using various modes like Move, Rotate, Scale, Morph, 
+                    and Delete. Each mode offers unique ways to customize your clay companion.
+                </p>
+            </div>
+
+            <!-- Step 5 Content: Connect -->
+            <div class="content-slide" data-content="5">
+                <div class="icon-container">
+                    <svg class="content-icon" viewBox="0 0 24 24">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 
+                                 4.42 3 7.5 3c1.74 0 3.41 0.81 
+                                 4.5 2.09C13.09 3.81 14.76 3 
+                                 16.5 3 19.58 3 22 5.42 
+                                 22 8.5c0 3.78-3.4 6.86-8.55 
+                                 11.54L12 21.35z"/>
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                    </svg>
+                </div>
+                <h1 class="content-title">Connect and Share</h1>
+                <p class="content-description">
+                    Share your creations and experiences with the community. Collaborate, inspire, 
+                    and learn from fellow creators as you continue your clay journey.
+                </p>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="nav-buttons">
+                <button class="nav-button" id="prevBtn">Previous</button>
+                <button class="nav-button primary" id="nextBtn">Next</button>
+            </div>
+        </div>
+
+        <!-- Highlight Overlay -->
+        <div class="highlight-overlay" id="highlightOverlay"></div>
+
+        <script>
+            class Onboarding {
+                constructor() {
+                    this.currentStep = 1;
+                    this.totalSteps = 5;
+                    this.stepElements = document.querySelectorAll('.step-item');
+                    this.contentSlides = document.querySelectorAll('.content-slide');
+                    this.prevBtn = document.getElementById('prevBtn');
+                    this.nextBtn = document.getElementById('nextBtn');
+                    this.highlightOverlay = document.getElementById('highlightOverlay');
+
+                    this.interfaceButtons = {
+                        2: document.getElementById('addElement'), // Add Element button
+                        3: document.getElementById('undo'),        // Undo button
+                        3.1: document.getElementById('redo'),      // Redo button
+                        4: {
+                            move: document.querySelector('button[data-mode="move"]'),
+                            rotate: document.querySelector('button[data-mode="rotate"]'),
+                            scale: document.querySelector('button[data-mode="scale"]'),
+                            morph: document.querySelector('button[data-mode="morph"]'),
+                            delete: document.querySelector('button[data-mode="delete"]')
+                        },
+                        // Add more mappings as needed
+                    };
+
+                    this.setupEventListeners();
+                    this.initializeStep();
+                }
+
+                setupEventListeners() {
+                    this.nextBtn.addEventListener('click', () => this.nextStep());
+                    this.prevBtn.addEventListener('click', () => this.prevStep());
+
+                    // Disable Previous button on first step
+                    if (this.currentStep === 1) {
+                        this.prevBtn.style.display = 'none';
+                    }
+
+                    // Add click listeners to step items (optional)
+                    this.stepElements.forEach(item => {
+                        item.addEventListener('click', () => {
+                            const step = parseInt(item.getAttribute('data-step'));
+                            if (step !== this.currentStep) {
+                                this.goToStep(step);
+                            }
+                        });
+                    });
+                }
+
+                initializeStep() {
+                    this.showStep(this.currentStep);
+                }
+
+                showStep(step) {
+                    // Highlight the corresponding step item
+                    this.stepElements.forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    const activeStepItem = document.querySelector(`.step-item[data-step="${step}"]`);
+                    if (activeStepItem) activeStepItem.classList.add('active');
+
+                    // Show the corresponding content slide
+                    this.contentSlides.forEach(slide => {
+                        slide.classList.remove('active');
+                    });
+                    const activeSlide = document.querySelector(`.content-slide[data-content="${step}"]`);
+                    if (activeSlide) activeSlide.classList.add('active');
+
+                    // Animate the active slide
+                    gsap.fromTo(activeSlide, 
+                        { opacity: 0, y: 50 }, 
+                        { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' }
+                    );
+
+                    // Handle button states
+                    this.prevBtn.style.display = step === 1 ? 'none' : 'inline-block';
+                    this.nextBtn.textContent = step === this.totalSteps ? 'Get Started' : 'Next';
+
+                    // Highlight interface buttons if applicable
+                    this.highlightInterfaceButton(step);
+                }
+
+                highlightInterfaceButton(step) {
+                    // Remove any existing highlights
+                    gsap.to(this.highlightOverlay, {
+                        duration: 0.3,
+                        opacity: 0,
+                        ease: 'power2.out'
+                    });
+
+                    // Determine if the current step requires highlighting an interface button
+                    if (this.interfaceButtons[step]) {
+                        let targetButton;
+
+                        // Handle complex mappings
+                        if (typeof this.interfaceButtons[step] === 'object') {
+                            // For modes, highlight all mode buttons
+                            const modeButtons = Object.values(this.interfaceButtons[step]);
+                            modeButtons.forEach(btn => {
+                                this.createHighlight(btn);
+                            });
+                            return;
+                        } else {
+                            targetButton = this.interfaceButtons[step];
+                        }
+
+                        if (targetButton) {
+                            this.createHighlight(targetButton);
+                        }
+                    }
+                }
+
+                createHighlight(element) {
+                    const rect = element.getBoundingClientRect();
+                    const bodyRect = document.body.getBoundingClientRect();
+
+                    // Position the highlight overlay over the target element
+                    this.highlightOverlay.style.width = `${rect.width + 10}px`;
+                    this.highlightOverlay.style.height = `${rect.height + 10}px`;
+                    this.highlightOverlay.style.left = `${rect.left - bodyRect.left - 5}px`;
+                    this.highlightOverlay.style.top = `${rect.top - bodyRect.top - 5}px`;
+
+                    // Animate the highlight
+                    gsap.to(this.highlightOverlay, {
+                        duration: 0.3,
+                        opacity: 1,
+                        ease: 'power2.out'
+                    });
+                }
+
+                nextStep() {
+                    if (this.currentStep === 2) {
+                        // Wait for user to add an element
+                        const addBtn = this.interfaceButtons[2];
+                        addBtn.classList.add('highlight-pulse');
+
+                        const addListener = () => {
+                            addBtn.classList.remove('highlight-pulse');
+                            addBtn.removeEventListener('click', addListener);
+                            this.currentStep++;
+                            this.showStep(this.currentStep);
+                        };
+
+                        addBtn.addEventListener('click', addListener);
+                        return;
+                    }
+
+                    if (this.currentStep === 3) {
+                        // Wait for user to perform undo and redo
+                        const undoBtn = this.interfaceButtons[3];
+                        const redoBtn = this.interfaceButtons[3.1];
+                        undoBtn.classList.add('highlight-pulse');
+                        redoBtn.classList.add('highlight-pulse');
+
+                        let undoDone = false;
+                        let redoDone = false;
+
+                        const undoListener = () => {
+                            undoDone = true;
+                            undoBtn.classList.remove('highlight-pulse');
+                            undoBtn.removeEventListener('click', undoListener);
+                            if (redoDone) {
+                                this.currentStep++;
+                                this.showStep(this.currentStep);
+                            }
+                        };
+
+                        const redoListener = () => {
+                            redoDone = true;
+                            redoBtn.classList.remove('highlight-pulse');
+                            redoBtn.removeEventListener('click', redoListener);
+                            if (undoDone) {
+                                this.currentStep++;
+                                this.showStep(this.currentStep);
+                            }
+                        };
+
+                        undoBtn.addEventListener('click', undoListener);
+                        redoBtn.addEventListener('click', redoListener);
+                        return;
+                    }
+
+                    if (this.currentStep === 4) {
+                        // Wait for user to interact with all modes
+                        const modes = this.interfaceButtons[4];
+                        const modeButtons = Object.values(modes);
+                        modeButtons.forEach(btn => btn.classList.add('highlight-pulse'));
+
+                        let interactions = 0;
+                        const requiredInteractions = modeButtons.length;
+
+                        modeButtons.forEach(btn => {
+                            const interactionHandler = () => {
+                                interactions++;
+                                btn.classList.remove('highlight-pulse');
+                                btn.removeEventListener('click', interactionHandler);
+                                if (interactions === requiredInteractions) {
+                                    this.currentStep++;
+                                    this.showStep(this.currentStep);
+                                }
+                            };
+                            btn.addEventListener('click', interactionHandler);
+                        });
+
+                        return;
+                    }
+
+                    if (this.currentStep === 5) {
+                        // Final step, proceed to main application
+                        this.completeOnboarding();
+                        return;
+                    }
+
+                    // Proceed to next step
+                    if (this.currentStep < this.totalSteps) {
+                        this.currentStep++;
+                        this.showStep(this.currentStep);
+                    }
+                }
+
+                prevStep() {
+                    if (this.currentStep > 1) {
+                        this.currentStep--;
+                        this.showStep(this.currentStep);
+                    }
+                }
+
+                goToStep(step) {
+                    if (step < 1 || step > this.totalSteps) return;
+                    this.currentStep = step;
+                    this.showStep(this.currentStep);
+                }
+
+                completeOnboarding() {
+                    // Animate the onboarding container out
+                    gsap.to('.onboarding-container', {
+                        duration: 1,
+                        opacity: 0,
+                        scale: 0.9,
+                        ease: 'power2.in',
+                        onComplete: () => {
+                            document.querySelector('.onboarding-container').style.display = 'none';
+                            // Initialize the main application here
+                            initializeMainApp();
+                        }
+                    });
+                }
+            }
+
+            // Initialize the onboarding
+            const onboarding = new Onboarding();
+
+            // Function to initialize the main application after onboarding
+            function initializeMainApp() {
+                // For demonstration, we'll replace the body content with the main interface
+                document.body.innerHTML = `
+                    <div class="workspace">
+                        <div class="grid"></div>
+                        <!-- Default Robot Elements -->
+                        <div class="clay-element" id="head" style="width: 100px; height: 100px; left: 50%; top: 50px; transform: translateX(-50%);">Head</div>
+                        <div class="clay-element" id="torso" style="width: 150px; height: 200px; left: 50%; top: 160px; transform: translateX(-50%);">Torso</div>
+                        <div class="clay-element arm left-arm" style="width: 80px; height: 150px; left: calc(50% - 130px); top: 160px;">Left Arm</div>
+                        <div class="clay-element arm right-arm" style="width: 80px; height: 150px; left: calc(50% + 50px); top: 160px;">Right Arm</div>
+                        <div class="clay-element leg left-leg" style="width: 80px; height: 150px; left: calc(50% - 60px); top: 360px;">Left Leg</div>
+                        <div class="clay-element leg right-leg" style="width: 80px; height: 150px; left: calc(50% + 20px); top: 360px;">Right Leg</div>
+                    </div>
+
+                    <div id="gridToggle">Grid Off</div>
+
+                    <div class="controls-container">
+                        <div class="controls">
+                            <button class="control-btn" id="addElement">
+                                +
+                                <span class="tooltip">Add Element</span>
+                            </button>
+                            <button class="control-btn" id="undo">
+                                ↩
+                                <span class="tooltip">Undo</span>
+                            </button>
+                            <button class="control-btn" id="redo">
+                                ↪
+                                <span class="tooltip">Redo</span>
+                            </button>
+                            <button class="mode-btn" data-mode="move">
+                                ↔
+                                <span class="tooltip">Move Mode</span>
+                            </button>
+                            <button class="mode-btn" data-mode="rotate">
+                                ⟳
+                                <span class="tooltip">Rotate Mode</span>
+                            </button>
+                            <button class="mode-btn" data-mode="scale">
+                                ⤧
+                                <span class="tooltip">Scale Mode</span>
+                            </button>
+                            <button class="mode-btn" data-mode="morph">
+                                🔄
+                                <span class="tooltip">Morph Mode</span>
+                            </button>
+                            <button class="mode-btn" data-mode="delete">
+                                🗑
+                                <span class="tooltip">Delete Mode</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="modal" id="addElementModal">
+                        <h2>New Element</h2>
+                        <input type="text" id="elementText" placeholder="Enter text">
+                        <div class="color-picker">
+                            <div class="color-option" style="background: #FFD700" data-color="#FFD700"></div>
+                            <div class="color-option" style="background: #B22222" data-color="#B22222"></div>
+                            <div class="color-option" style="background: #8B4513" data-color="#8B4513"></div>
+                            <div class="color-option" style="background: #FFA500" data-color="#FFA500"></div>
+                            <div class="color-option" style="background: #FF6347" data-color="#FF6347"></div>
+                        </div>
+                        <div class="modal-buttons">
+                            <button class="control-btn" id="cancelAdd">✕</button>
+                            <button class="control-btn" id="confirmAdd">✓</button>
+                        </div>
+                    </div>
+
+                    <div class="highlight-overlay" id="highlightOverlay"></div>
+                `;
+
+                // Initialize the main interface functionality here
+                // This could involve re-initializing event listeners, GSAP animations, etc.
+                // For demonstration, we'll display a welcome message
+
+                gsap.from('.workspace', {
+                    duration: 1,
+                    scale: 0.8,
+                    opacity: 0,
+                    ease: 'power3.out'
+                });
+
+                gsap.from('.controls', {
+                    duration: 1,
+                    y: 50,
+                    opacity: 0,
+                    delay: 0.5,
+                    ease: 'power3.out'
+                });
+
+                // Implement the rest of the main application logic as needed
+                // For example, re-initialize the Onboarding class or other components
+            }
+        </script>
+    </body>
+</html>

@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Clay Interface</title>
+    <!-- Hammer.js for gesture support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
+    <!-- GSAP MorphSVGPlugin for organic morphing (Note: Requires GSAP Club GreenSock membership) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/MorphSVGPlugin.min.js"></script>
+    <style>
+        :root {
+            --clay-primary: #B22222;
+            --clay-secondary: #8B4513;
+            --clay-accent: #FFD700;
+            --clay-shadow: rgba(0, 0, 0, 0.3);
+            --clay-highlight: rgba(255, 255, 255, 0.1);
+            --control-size: 70px;
+            --modal-bg: #2E3440;
+            --modal-text: #ECEFF4;
+            --button-hover-bg: #FFD700;
+            --button-hover-text: #2E3440;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--clay-secondary), #654321);
+            min-height: 100vh;
+            font-family: monospace;
+            color: var(--clay-accent);
+            overflow: hidden;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--clay-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 2000;
+            color: var(--clay-accent);
+            font-size: 24px;
+            transition: opacity 0.5s ease, visibility 0.5s;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        /* Workspace and Grid */
+        .workspace {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            perspective: 1200px;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 0;
+        }
+
+        .grid.active {
+            opacity: 1;
+        }
+
+        /* Controls */
+        .controls-container {
+            position: fixed;
+            bottom: 30px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .controls {
+            background: rgba(46, 52, 64, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 35px;
+            display: flex;
+            gap: 15px;
+            box-shadow: 0 10px 30px var(--clay-shadow);
+        }
+
+        .control-btn, .mode-btn {
+            width: var(--control-size);
+            height: var(--control-size);
+            background: var(--clay-secondary);
+            color: var(--clay-highlight);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 
+                8px 8px 16px var(--clay-shadow),
+                inset -2px -2px 4px rgba(0,0,0,0.3),
+                inset 2px 2px 4px rgba(255,255,255,0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .control-btn:hover, .mode-btn:hover {
+            transform: scale(1.1);
+            background: var(--button-hover-bg);
+            color: var(--button-hover-text);
+        }
+
+        .control-btn.active, .mode-btn.active {
+            background: var(--clay-accent);
+            color: var(--clay-primary);
+            transform: scale(0.95);
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 5px 10px;
+            background: rgba(46, 52, 64, 0.9);
+            color: var(--clay-accent);
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+            margin-bottom: 5px;
+            pointer-events: none;
+        }
+
+        .control-btn:hover .tooltip, .mode-btn:hover .tooltip {
+            opacity: 1;
+        }
+
+        /* Grid Toggle Button */
+        #gridToggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(46, 52, 64, 0.8);
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            color: var(--clay-highlight);
+            font-size: 16px;
+            z-index: 100;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        #gridToggle.active {
+            background: var(--clay-accent);
+            color: var(--clay-primary);
+        }
+
+        #gridToggle:hover {
+            background: var(--clay-accent);
+            color: var(--clay-primary);
+        }
+
+        /* Clay Elements */
+        .clay-element {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            background: var(--clay-accent);
+            border-radius: 50%;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 
+                15px 15px 30px var(--clay-shadow),
+                inset -4px -4px 8px rgba(0,0,0,0.2),
+                inset 4px 4px 8px rgba(255,255,255,0.2);
+            transition: all 0.3s;
+            color: black; /* Set text color to black */
+            text-align: center;
+            padding: 20px;
+            user-select: none;
+            transform-origin: center center;
+            font-size: 18px;
+            font-weight: 600;
+            z-index: 1;
+        }
+
+        .clay-element.active {
+            cursor: grabbing;
+            transform: scale(1.05);
+            box-shadow: 
+                20px 20px 40px var(--clay-shadow),
+                inset -6px -6px 12px rgba(0,0,0,0.3),
+                inset 6px 6px 12px rgba(255,255,255,0.3);
+        }
+
+        .clay-element::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2), transparent);
+            pointer-events: none;
+        }
+
+        /* Selected Element Outline */
+        .clay-element.selected {
+            outline: 3px solid var(--clay-accent);
+            box-shadow: 
+                20px 20px 40px var(--clay-shadow),
+                inset -6px -6px 12px rgba(0,0,0,0.3),
+                inset 6px 6px 12px rgba(255,255,255,0.3);
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: var(--modal-bg);
+            padding: 30px;
+            border-radius: 20px;
+            z-index: 1000;
+            display: none;
+            color: var(--modal-text);
+            box-shadow: 0 20px 60px var(--clay-shadow);
+            opacity: 0;
+            transition: all 0.3s;
+            min-width: 300px;
+        }
+
+        .modal.active {
+            display: block;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: var(--clay-accent);
+            text-align: center;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0 20px;
+            border: none;
+            border-radius: 10px;
+            background: var(--clay-secondary);
+            color: var(--clay-highlight);
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .modal input:focus {
+            box-shadow: 0 0 0 2px var(--clay-accent);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+
+        .modal .control-btn {
+            width: 50px;
+            height: 50px;
+            font-size: 18px;
+        }
+
+        /* Color Picker */
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.active {
+            border-color: var(--clay-highlight);
+        }
+
+        /* New Morph Button */
+        <style>
+            /* Existing styles */
+
+            /* No additional styles needed for Morph Mode button since it's similar to other mode buttons */
+        </style>
+    </head>
+    <body>
+        <!-- Loading Screen -->
+        <div class="loading-screen" id="loadingScreen">
+            <h1>Welcome to Clay Interface</h1>
+            <p>Drag, rotate, scale, and morph your elements to create stunning designs.</p>
+            <p>Use the controls below to get started!</p>
+        </div>
+
+        <!-- Workspace with Default Robot -->
+        <div class="workspace">
+            <div class="grid"></div>
+            <!-- Default Robot Elements -->
+            <div class="clay-element" id="head" style="width: 100px; height: 100px; left: 50%; top: 50px; transform: translateX(-50%);">Head</div>
+            <div class="clay-element" id="torso" style="width: 150px; height: 200px; left: 50%; top: 160px; transform: translateX(-50%);">Torso</div>
+            <div class="clay-element arm left-arm" style="width: 80px; height: 150px; left: calc(50% - 130px); top: 160px;">Left Arm</div>
+            <div class="clay-element arm right-arm" style="width: 80px; height: 150px; left: calc(50% + 50px); top: 160px;">Right Arm</div>
+            <div class="clay-element leg left-leg" style="width: 80px; height: 150px; left: calc(50% - 60px); top: 360px;">Left Leg</div>
+            <div class="clay-element leg right-leg" style="width: 80px; height: 150px; left: calc(50% + 20px); top: 360px;">Right Leg</div>
+        </div>
+
+        <!-- Grid Toggle Button -->
+        <div id="gridToggle">Grid Off</div>
+
+        <!-- Controls -->
+        <div class="controls-container">
+            <div class="controls">
+                <button class="control-btn" id="addElement">
+                    +
+                    <span class="tooltip">Add Element</span>
+                </button>
+                <button class="control-btn" id="undo">
+                    ↩
+                    <span class="tooltip">Undo</span>
+                </button>
+                <button class="control-btn" id="redo">
+                    ↪
+                    <span class="tooltip">Redo</span>
+                </button>
+                <button class="mode-btn" data-mode="move">
+                    ↔
+                    <span class="tooltip">Move Mode</span>
+                </button>
+                <button class="mode-btn" data-mode="rotate">
+                    ⟳
+                    <span class="tooltip">Rotate Mode</span>
+                </button>
+                <button class="mode-btn" data-mode="scale">
+                    ⤧
+                    <span class="tooltip">Scale Mode</span>
+                </button>
+                <button class="mode-btn" data-mode="morph">
+                    🔄
+                    <span class="tooltip">Morph Mode</span>
+                </button>
+                <button class="mode-btn" data-mode="delete">
+                    🗑
+                    <span class="tooltip">Delete Mode</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Add Element Modal -->
+        <div class="modal" id="addElementModal">
+            <h2>New Element</h2>
+            <input type="text" id="elementText" placeholder="Enter text">
+            <div class="color-picker">
+                <div class="color-option" style="background: #FFD700" data-color="#FFD700"></div>
+                <div class="color-option" style="background: #B22222" data-color="#B22222"></div>
+                <div class="color-option" style="background: #8B4513" data-color="#8B4513"></div>
+                <div class="color-option" style="background: #FFA500" data-color="#FFA500"></div>
+                <div class="color-option" style="background: #FF6347" data-color="#FF6347"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="control-btn" id="cancelAdd">✕</button>
+                <button class="control-btn" id="confirmAdd">✓</button>
+            </div>
+        </div>
+
+        <!-- Onboarding Tooltip (Optional) -->
+        <!-- You can implement additional onboarding tooltips here if desired -->
+
+        <script>
+            class ClayInterface {
+                constructor() {
+                    this.workspace = document.querySelector('.workspace');
+                    this.modal = document.getElementById('addElementModal');
+                    this.grid = document.querySelector('.grid');
+                    this.gridToggle = document.getElementById('gridToggle');
+                    this.currentMode = 'move';
+                    this.elements = Array.from(document.querySelectorAll('.clay-element'));
+                    this.undoStack = [];
+                    this.redoStack = [];
+                    this.selectedColor = '#FFD700'; // Default color
+                    this.snapToGrid = false;
+                    this.loadingScreen = document.getElementById('loadingScreen');
+
+                    this.setupEventListeners();
+                    this.setupModeButtons();
+                    this.setupColorPicker();
+                    this.setupGridToggle();
+                    this.setupDefaultRobotInteractions();
+                    this.showLoadingScreen();
+                }
+
+                showLoadingScreen() {
+                    // Simulate loading time (e.g., 2 seconds)
+                    setTimeout(() => {
+                        this.loadingScreen.classList.add('hidden');
+                        // Remove loading screen after transition
+                        setTimeout(() => {
+                            this.loadingScreen.style.display = 'none';
+                        }, 500);
+                    }, 2000);
+                }
+
+                setupEventListeners() {
+                    document.getElementById('addElement').addEventListener('click', () => {
+                        this.modal.classList.add('active');
+                        document.getElementById('elementText').focus();
+                    });
+
+                    document.getElementById('confirmAdd').addEventListener('click', () => this.handleAddElement());
+                    document.getElementById('cancelAdd').addEventListener('click', () => this.hideModal());
+                    document.getElementById('undo').addEventListener('click', () => this.undo());
+                    document.getElementById('redo').addEventListener('click', () => this.redo());
+
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' && this.modal.classList.contains('active')) {
+                            this.handleAddElement();
+                        }
+                        if (e.key === 'Escape') {
+                            this.hideModal();
+                        }
+                        if (e.key === 'Delete' && this.currentMode === 'delete') {
+                            // Delete selected element if any
+                            const selected = this.elements.find(el => el.classList.contains('selected'));
+                            if (selected) {
+                                this.removeElement(selected);
+                            }
+                        }
+                    });
+                }
+
+                setupModeButtons() {
+                    const modeButtons = document.querySelectorAll('.mode-btn');
+                    modeButtons.forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            modeButtons.forEach(b => b.classList.remove('active'));
+                            btn.classList.add('active');
+                            this.currentMode = btn.dataset.mode;
+                            this.workspace.style.cursor = 
+                                this.currentMode === 'delete' ? 'no-drop' : 'grab';
+                            // Deselect any selected element when mode changes
+                            this.elements.forEach(el => el.classList.remove('selected'));
+                        });
+                    });
+                    // Set default active mode
+                    modeButtons[0].classList.add('active');
+                }
+
+                setupColorPicker() {
+                    const colorOptions = document.querySelectorAll('.color-option');
+                    colorOptions[0].classList.add('active'); // Set default color
+                    colorOptions.forEach(option => {
+                        option.addEventListener('click', () => {
+                            colorOptions.forEach(opt => opt.classList.remove('active'));
+                            option.classList.add('active');
+                            this.selectedColor = option.dataset.color;
+                        });
+                    });
+                }
+
+                setupGridToggle() {
+                    this.gridToggle.addEventListener('click', () => {
+                        this.grid.classList.toggle('active');
+                        this.snapToGrid = !this.snapToGrid;
+                        this.gridToggle.textContent = this.snapToGrid ? 'Grid On' : 'Grid Off';
+                    });
+                }
+
+                handleAddElement() {
+                    const text = document.getElementById('elementText').value.trim();
+                    if (text) {
+                        this.addElement(text);
+                        this.hideModal();
+                        document.getElementById('elementText').value = '';
+                    }
+                }
+
+                hideModal() {
+                    this.modal.classList.remove('active');
+                }
+
+                snapToGridValue(value) {
+                    return this.snapToGrid ? Math.round(value / 50) * 50 : value;
+                }
+
+                addElement(text) {
+                    const element = document.createElement('div');
+                    element.className = 'clay-element';
+                    element.textContent = text;
+                    element.style.background = this.selectedColor;
+
+                    // Position with optional snapping to grid
+                    const initialX = this.snapToGridValue(Math.random() * (window.innerWidth - 150));
+                    const initialY = this.snapToGridValue(Math.random() * (window.innerHeight - 150));
+                    element.style.left = `${initialX}px`;
+                    element.style.top = `${initialY}px`;
+
+                    this.workspace.appendChild(element);
+                    this.elements.push(element);
+                    this.setupElementInteractions(element);
+
+                    gsap.from(element, {
+                        duration: 0.5,
+                        scale: 0,
+                        opacity: 0,
+                        ease: "back.out(1.7)"
+                    });
+
+                    this.undoStack.push({
+                        type: 'add',
+                        element: element
+                    });
+                    // Clear redo stack on new action
+                    this.redoStack = [];
+                }
+
+                setupElementInteractions(element) {
+                    const hammer = new Hammer.Manager(element);
+                    hammer.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
+                    hammer.add(new Hammer.Rotate({ threshold: 0 }));
+                    hammer.add(new Hammer.Pinch({ threshold: 0 }));
+                    hammer.add(new Hammer.Tap({ event: 'doubletap', taps: 2 }));
+
+                    let lastRotation = 0;
+                    let lastScale = 1;
+                    let startTransform = {
+                        x: 0,
+                        y: 0,
+                        rotate: 0,
+                        scale: 1
+                    };
+
+                    hammer.get('rotate').set({ enable: true });
+                    hammer.get('pinch').set({ enable: true });
+
+                    hammer.on('panstart rotatestart pinchstart', () => {
+                        element.classList.add('active');
+                        startTransform = this.getTransform(element);
+                        lastRotation = 0;
+                        lastScale = 1;
+                    });
+
+                    hammer.on('pan rotatetranslate pinch', (ev) => {
+                        if (this.currentMode === 'move' && ev.type === 'pan') {
+                            let x = startTransform.x + ev.deltaX;
+                            let y = startTransform.y + ev.deltaY;
+                            if (this.snapToGrid) {
+                                x = this.snapToGridValue(x);
+                                y = this.snapToGridValue(y);
+                            }
+                            gsap.to(element, {
+                                duration: 0.1,
+                                x: x,
+                                y: y,
+                                ease: "power2.out"
+                            });
+                        }
+
+                        if (this.currentMode === 'rotate' && ev.type === 'rotate') {
+                            const rotation = startTransform.rotate + (ev.rotation - lastRotation);
+                            lastRotation = ev.rotation;
+                            gsap.to(element, {
+                                duration: 0.1,
+                                rotation: rotation,
+                                ease: "power2.out"
+                            });
+                        }
+
+                        if (this.currentMode === 'scale' && (ev.type === 'pinch' || ev.type === 'pinchmove')) {
+                            const scale = startTransform.scale * (ev.scale / lastScale);
+                            lastScale = ev.scale;
+                            gsap.to(element, {
+                                duration: 0.1,
+                                scale: Math.max(0.5, Math.min(2, scale)),
+                                ease: "power2.out"
+                            });
+                        }
+
+                        if (this.currentMode === 'morph' && ev.type === 'pan') {
+                            // Example: Morphing by skewing based on pan
+                            gsap.to(element, {
+                                duration: 0.1,
+                                skewX: ev.deltaX * 0.05,
+                                skewY: ev.deltaY * 0.05,
+                                ease: "power2.out"
+                            });
+                        }
+
+                        if (this.currentMode === 'delete' && ev.type === 'pan') {
+                            // Visual feedback for delete mode
+                            gsap.to(element, {
+                                duration: 0.1,
+                                opacity: 0.5
+                            });
+                        }
+                    });
+
+                    hammer.on('panend rotateend pinchend', () => {
+                        element.classList.remove('active');
+                        const endTransform = this.getTransform(element);
+                        this.undoStack.push({
+                            type: 'transform',
+                            element: element,
+                            start: { ...startTransform },
+                            end: { ...endTransform }
+                        });
+                        // Clear redo stack on new action
+                        this.redoStack = [];
+                    });
+
+                    // Double tap to remove element (only in delete mode)
+                    hammer.on('doubletap', () => {
+                        if (this.currentMode === 'delete') {
+                            this.removeElement(element);
+                        }
+                    });
+
+                    // Click to select/deselect for deletion
+                    element.addEventListener('click', (e) => {
+                        if (this.currentMode === 'delete') {
+                            this.elements.forEach(el => el.classList.remove('selected'));
+                            element.classList.toggle('selected');
+                        }
+                    });
+
+                    // Desktop support for rotate and scale using mouse
+                    this.addDesktopSupport(element);
+                }
+
+                addDesktopSupport(element) {
+                    let isDragging = false;
+                    let isRotating = false;
+                    let isScaling = false;
+                    let isMorphing = false;
+                    let startX, startY;
+                    let initialTransform = this.getTransform(element);
+                    let initialMousePos = { x: 0, y: 0 };
+
+                    element.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        if (this.currentMode === 'move') {
+                            isDragging = true;
+                            startX = e.clientX - initialTransform.x;
+                            startY = e.clientY - initialTransform.y;
+                            element.classList.add('active');
+                        } else if (this.currentMode === 'rotate') {
+                            isRotating = true;
+                            const rect = element.getBoundingClientRect();
+                            const centerX = rect.left + rect.width / 2;
+                            const centerY = rect.top + rect.height / 2;
+                            const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+                            initialTransform.rotate = angle;
+                            element.classList.add('active');
+                        } else if (this.currentMode === 'scale') {
+                            isScaling = true;
+                            initialMousePos = { x: e.clientX, y: e.clientY };
+                            element.classList.add('active');
+                        } else if (this.currentMode === 'morph') {
+                            isMorphing = true;
+                            initialMousePos = { x: e.clientX, y: e.clientY };
+                            element.classList.add('active');
+                        }
+                    });
+
+                    document.addEventListener('mousemove', (e) => {
+                        if (isDragging) {
+                            let x = e.clientX - startX;
+                            let y = e.clientY - startY;
+                            if (this.snapToGrid) {
+                                x = this.snapToGridValue(x);
+                                y = this.snapToGridValue(y);
+                            }
+                            gsap.to(element, {
+                                duration: 0.1,
+                                x: x,
+                                y: y,
+                                ease: "power2.out"
+                            });
+                        } else if (isRotating) {
+                            const rect = element.getBoundingClientRect();
+                            const centerX = rect.left + rect.width / 2;
+                            const centerY = rect.top + rect.height / 2;
+                            const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+                            gsap.to(element, {
+                                duration: 0.1,
+                                rotation: angle,
+                                ease: "power2.out"
+                            });
+                        } else if (isScaling) {
+                            const deltaY = e.clientY - initialMousePos.y;
+                            const scale = Math.max(0.5, Math.min(initialTransform.scale + deltaY * 0.005, 2));
+                            gsap.to(element, {
+                                duration: 0.1,
+                                scale: scale,
+                                ease: "power2.out"
+                            });
+                        } else if (isMorphing) {
+                            const deltaX = e.clientX - initialMousePos.x;
+                            const deltaY = e.clientY - initialMousePos.y;
+                            gsap.to(element, {
+                                duration: 0.1,
+                                skewX: deltaX * 0.05,
+                                skewY: deltaY * 0.05,
+                                ease: "power2.out"
+                            });
+                        }
+
+                        if (this.currentMode === 'delete') {
+                            // Visual feedback for delete mode on desktop
+                            if (isDragging || isRotating || isScaling || isMorphing) {
+                                gsap.to(element, {
+                                    duration: 0.1,
+                                    opacity: 0.5
+                                });
+                            }
+                        }
+                    });
+
+                    document.addEventListener('mouseup', () => {
+                        if (isDragging || isRotating || isScaling || isMorphing) {
+                            element.classList.remove('active');
+                            const endTransform = this.getTransform(element);
+                            this.undoStack.push({
+                                type: 'transform',
+                                element: element,
+                                start: { ...initialTransform },
+                                end: { ...endTransform }
+                            });
+                            // Clear redo stack on new action
+                            this.redoStack = [];
+                        }
+                        isDragging = false;
+                        isRotating = false;
+                        isScaling = false;
+                        isMorphing = false;
+                    });
+                }
+
+                setupDefaultRobotInteractions() {
+                    // Iterate through pre-existing robot parts and set up interactions
+                    this.elements.forEach(element => {
+                        this.setupElementInteractions(element);
+                    });
+                }
+
+                getTransform(element) {
+                    const style = window.getComputedStyle(element);
+                    const matrix = new DOMMatrix(style.transform);
+                    return {
+                        x: matrix.e,
+                        y: matrix.f,
+                        rotate: Math.atan2(matrix.b, matrix.a) * (180 / Math.PI),
+                        scale: Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b)
+                    };
+                }
+
+                undo() {
+                    const action = this.undoStack.pop();
+                    if (!action) return;
+
+                    this.redoStack.push(action);
+
+                    if (action.type === 'add') {
+                        action.element.remove();
+                        this.elements = this.elements.filter(el => el !== action.element);
+                    } else if (action.type === 'transform') {
+                        gsap.to(action.element, {
+                            duration: 0.3,
+                            x: action.start.x,
+                            y: action.start.y,
+                            rotation: action.start.rotate,
+                            scale: action.start.scale,
+                            skewX: 0,
+                            skewY: 0,
+                            ease: "power2.out"
+                        });
+                    } else if (action.type === 'remove') {
+                        this.workspace.appendChild(action.element);
+                        this.elements.push(action.element);
+                        this.setupElementInteractions(action.element);
+                    }
+                }
+
+                redo() {
+                    const action = this.redoStack.pop();
+                    if (!action) return;
+
+                    this.undoStack.push(action);
+
+                    if (action.type === 'add') {
+                        this.workspace.appendChild(action.element);
+                        this.elements.push(action.element);
+                        this.setupElementInteractions(action.element);
+                    } else if (action.type === 'transform') {
+                        gsap.to(action.element, {
+                            duration: 0.3,
+                            x: action.end.x,
+                            y: action.end.y,
+                            rotation: action.end.rotate,
+                            scale: action.end.scale,
+                            skewX: 0,
+                            skewY: 0,
+                            ease: "power2.out"
+                        });
+                    } else if (action.type === 'remove') {
+                        action.element.remove();
+                        this.elements = this.elements.filter(el => el !== action.element);
+                    }
+                }
+
+                removeElement(element) {
+                    this.undoStack.push({
+                        type: 'remove',
+                        element: element,
+                        parent: element.parentNode,
+                        index: Array.prototype.indexOf.call(this.workspace.children, element)
+                    });
+                    element.remove();
+                    this.elements = this.elements.filter(el => el !== element);
+                    // Clear redo stack on new action
+                    this.redoStack = [];
+                }
+            }
+
+            // Initialize the interface once DOM is fully loaded
+            document.addEventListener('DOMContentLoaded', () => {
+                const clayInterface = new ClayInterface();
+            });
+        </script>
+    </body>
+</html>
