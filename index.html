@@ -477,6 +477,7 @@
     <!-- Controls -->
     <div class="controls-container">
         <div class="controls">
+            <!-- Moved "Add Element" to Trash Can's Position -->
             <button class="control-btn" id="addElement">
                 +
                 <span class="tooltip">Add Element</span>
@@ -688,10 +689,20 @@
 
             setupElementInteractions(element) {
                 const hammer = new Hammer.Manager(element);
-                hammer.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
-                hammer.add(new Hammer.Rotate({ threshold: 0 }));
-                hammer.add(new Hammer.Pinch({ threshold: 0 }));
-                hammer.add(new Hammer.Tap({ event: 'doubletap', taps: 2 }));
+
+                // Define recognizers
+                const pan = new Hammer.Pan({ threshold: 10, pointers: 0 });
+                const rotate = new Hammer.Rotate({ threshold: 15 });
+                const pinch = new Hammer.Pinch({ threshold: 0 });
+                const doubleTap = new Hammer.Tap({ event: 'doubletap', taps: 2 });
+                const singleTap = new Hammer.Tap({ event: 'singletap' });
+
+                // Add recognizers to manager
+                hammer.add([pan, rotate, pinch, doubleTap, singleTap]);
+
+                // Enable pinch and rotate
+                pinch.recognizeWith(rotate);
+                rotate.recognizeWith(pan);
 
                 let lastRotation = 0;
                 let lastScale = 1;
@@ -702,9 +713,6 @@
                     scale: 1
                 };
 
-                hammer.get('rotate').set({ enable: true });
-                hammer.get('pinch').set({ enable: true });
-
                 hammer.on('panstart rotatestart pinchstart', () => {
                     element.classList.add('active');
                     startTransform = this.getTransform(element);
@@ -712,7 +720,7 @@
                     lastScale = 1;
                 });
 
-                hammer.on('pan rotatetranslate pinch', (ev) => {
+                hammer.on('panmove rotatemove pinchmove', (ev) => {
                     if (this.currentMode === 'move' && ev.type === 'pan') {
                         let x = startTransform.x + ev.deltaX;
                         let y = startTransform.y + ev.deltaY;
@@ -749,7 +757,7 @@
                     }
 
                     if (this.currentMode === 'morph' && ev.type === 'pan') {
-                        // Example: Morphing by skewing based on pan
+                        // Simplified morph: limited skew based on pan
                         gsap.to(element, {
                             duration: 0.1,
                             skewX: ev.deltaX * 0.05,
@@ -787,13 +795,17 @@
                     }
                 });
 
-                // Click to select/deselect for deletion
-                element.addEventListener('click', (e) => {
+                // Single tap to select/deselect for deletion
+                hammer.on('singletap', () => {
                     if (this.currentMode === 'delete') {
                         this.elements.forEach(el => el.classList.remove('selected'));
                         element.classList.toggle('selected');
                     }
                 });
+
+                // Prevent conflict between single and double taps
+                singleTap.recognizeWith(doubleTap);
+                doubleTap.requireFailure(singleTap);
 
                 // Desktop support for rotate and scale using mouse
                 this.addDesktopSupport(element);
